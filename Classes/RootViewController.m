@@ -7,7 +7,7 @@
 //
 
 #import "RootViewController.h"
-
+#import "Book.h"
 
 @interface RootViewController ()
 - (void)configureCell:(UITableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath;
@@ -25,7 +25,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    // Set up the edit and add buttons.
     self.navigationItem.leftBarButtonItem = self.editButtonItem;
     
     UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(insertNewObject)];
@@ -33,42 +32,9 @@
     [addButton release];
 }
 
-
-// Implement viewWillAppear: to do additional setup before the view is presented.
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-}
-
-
-/*
-- (void)viewDidAppear:(BOOL)animated {
-    [super viewDidAppear:animated];
-}
-*/
-/*
-- (void)viewWillDisappear:(BOOL)animated {
-    [super viewWillDisappear:animated];
-}
-*/
-/*
-- (void)viewDidDisappear:(BOOL)animated {
-    [super viewDidDisappear:animated];
-}
-*/
-
-/*
- // Override to allow orientations other than the default portrait orientation.
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
-    // Return YES for supported orientations.
-    return (interfaceOrientation == UIInterfaceOrientationPortrait);
-}
- */
-
-
-- (void)configureCell:(UITableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath {
-    
-    NSManagedObject *managedObject = [self.fetchedResultsController objectAtIndexPath:indexPath];
-    cell.textLabel.text = [[managedObject valueForKey:@"timeStamp"] description];
+- (void)configureCell:(UITableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath {    
+    Book *book = [self.fetchedResultsController objectAtIndexPath:indexPath];
+    cell.textLabel.text = book.title;
 }
 
 
@@ -76,16 +42,19 @@
 #pragma mark Add a new object
 
 - (void)insertNewObject {
-    
-    // Create a new instance of the entity managed by the fetched results controller.
     NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
     NSEntityDescription *entity = [[self.fetchedResultsController fetchRequest] entity];
-    NSManagedObject *newManagedObject = [NSEntityDescription insertNewObjectForEntityForName:[entity name] inManagedObjectContext:context];
-    
-    // If appropriate, configure the new managed object.
-    [newManagedObject setValue:[NSDate date] forKey:@"timeStamp"];
-    
-    // Save the context.
+    Book *newBook = [NSEntityDescription insertNewObjectForEntityForName:[entity name] inManagedObjectContext:context];
+	
+	BookViewController *bookViewController = [[BookViewController alloc] init];
+	bookViewController.book = newBook;
+	bookViewController.delegate = self;
+	[self presentModalViewController:bookViewController animated:YES];
+	[bookViewController release];
+}
+
+- (void)bookViewControllerDidSave:(BookViewController *)controller {
+	NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
     NSError *error = nil;
     if (![context save:&error]) {
         /*
@@ -96,6 +65,14 @@
         NSLog(@"Unresolved error %@, %@", error, [error userInfo]);
         abort();
     }
+	[self.tableView reloadData];
+	[self dismissModalViewControllerAnimated:YES];
+}
+
+- (void)bookViewControllerDidCancel:(BookViewController *)controller {
+	NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
+	[context rollback];
+	[self dismissModalViewControllerAnimated:YES];
 }
 
 
@@ -120,8 +97,6 @@
     return [sectionInfo numberOfObjects];
 }
 
-
-// Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     
     static NSString *CellIdentifier = @"Cell";
@@ -137,18 +112,6 @@
     return cell;
 }
 
-
-
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
-
-
-// Override to support editing the table view.
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
     
     if (editingStyle == UITableViewCellEditingStyleDelete) {
@@ -169,7 +132,6 @@
         }
     }   
 }
-
 
 - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
     // The table view should not be re-orderable.
@@ -301,16 +263,6 @@
 - (void)controllerDidChangeContent:(NSFetchedResultsController *)controller {
     [self.tableView endUpdates];
 }
-
-
-/*
-// Implementing the above methods to update the table view in response to individual changes may have performance implications if a large number of changes are made simultaneously. If this proves to be an issue, you can instead just implement controllerDidChangeContent: which notifies the delegate that all section and object changes have been processed. 
- 
- - (void)controllerDidChangeContent:(NSFetchedResultsController *)controller {
-    // In the simplest, most efficient, case, reload the table view.
-    [self.tableView reloadData];
-}
- */
 
 
 #pragma mark -
